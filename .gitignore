@@ -1,0 +1,20 @@
+# Security
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Project Specific
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/

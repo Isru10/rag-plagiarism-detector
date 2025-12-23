@@ -1,0 +1,233 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "assignment",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e0a90922-809f-4807-b5ad-94d0041616fe",
+      "webhookId": "aa2741e6-8cf4-4955-8262-9647af98905b"
+    },
+    {
+      "parameters": {
+        "filePath": "=/home/node/.n8n-files/{{ $json.body.filename }}"
+      },
+      "name": "Read Binary File",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "f6300da3-22db-4929-90f7-266c3d0ce25c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/internal/rag-search",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{$node[\"Extract Text\"].json[\"text\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "RAG Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a997a091-d1ba-4869-89fa-d8f5ca39e2a6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/internal/analyze",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{$node[\"Extract Text\"].json[\"text\"]}}"
+            },
+            {
+              "name": "context",
+              "value": "={{$json[\"context\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "AI Analyze",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        880,
+        0
+      ],
+      "id": "6a761e28-e6fb-4e54-9e14-d6d53b5c7fdc"
+    },
+    {
+      "parameters": {
+        "table": "analysis_results",
+        "columns": "assignment_id, plagiarism_score, suggested_sources",
+        "additionalFields": {}
+      },
+      "name": "Save to DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        0
+      ],
+      "id": "384d6348-05f4-4162-8ab8-180d64c61ec6",
+      "credentials": {
+        "postgres": {
+          "id": "bNxAr0lhm4ONwRHi",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "name": "Extract Text",
+      "type": "n8n-nodes-base.readPDF",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "b8ffdce7-708e-4e27-838a-e5bb5c32ffe3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d7e8bbb2-237b-4c3a-8efc-5b56668b4de5",
+              "name": "assignment_id",
+              "value": "={{ $('Webhook').item.json.body.assignment_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c8c354e6-1a9e-4a83-96ce-a72127892dc3",
+              "name": "plagiarism_score",
+              "value": "={{ $json.plagiarism_score }}",
+              "type": "string"
+            },
+            {
+              "id": "7c834fdf-e370-4342-8bbb-10ac774a990f",
+              "name": "suggested_sources",
+              "value": "={{ JSON.stringify($json.suggested_sources) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        0
+      ],
+      "id": "fd58b643-e6cc-4ecc-8c3e-b6d7a0362d78",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Binary File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Binary File": {
+      "main": [
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "RAG Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Search": {
+      "main": [
+        [
+          {
+            "node": "AI Analyze",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analyze": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Save to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f92975e9-d4c7-4051-94ef-9ed909d849ed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8ee92dd1941ff881bceabeba6ff8a9a8a0aac0c055e57e553a10b44f48b0f571"
+  },
+  "id": "fvEdDDUQILmtirYU",
+  "tags": []
+}
